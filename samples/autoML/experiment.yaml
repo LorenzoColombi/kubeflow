@@ -1,0 +1,77 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: random-experiment
+  namespace: kubeflow-user-example-com
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  maxTrialCount: 5
+  parallelTrialCount: 2
+  maxFailedTrialCount: 2
+  resumePolicy: Never
+  objective:
+    type: maximize
+    goal: 0.99
+    objectiveMetricName: accuracy
+    additionalMetricNames:
+      - loss
+    metricStrategies:
+      - name: accuracy
+        value: max
+      - name: loss
+        value: min
+  algorithm:
+    algorithmName: random
+    algorithmSettings: []
+  parameters:
+    - name: optimizer
+      parameterType: categorical
+      feasibleSpace:
+        list:
+          - sgd
+          - adam
+          - ftrl
+    - name: no_epochs
+      parameterType: int
+      feasibleSpace:
+        min: '1'
+        max: '2'
+        step: '1'
+  metricsCollectorSpec:
+    collector:
+      kind: StdOut
+  trialTemplate:
+    primaryContainerName: training-container
+    successCondition: status.conditions.#(type=="Complete")#|#(status=="True")#
+    failureCondition: status.conditions.#(type=="Failed")#|#(status=="True")#
+    retain: false
+    trialParameters:
+      - name: no_epochs
+        reference: no_epochs
+        description: ''
+      - name: optimizer
+        reference: optimizer
+        description: ''
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          metadata:
+            annotations:
+              sidecar.istio.io/inject: "false"
+          spec:
+            containers:
+              - name: training-container
+                image: docker.io/lorenzocolombi99/mnist4katib:fixed
+                command:
+                  - python3
+                  - /opt/mnist_training.py
+                  - '--no_epochs=${trialParameters.no_epochs}'
+                  - '--optimizer=${trialParameters.optimizer}'
+                resources:
+                  limits:
+                    memory: 4Gi
+                    cpu: '0.5'
+            restartPolicy: Never

@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubeflow-ingress
+  namespace: istio-system #DEVE ESSERE LO STESSO DEL SVC
+
+
+spec:
+  ingressClassName: public
+  rules:
+  - host: kubeflow.10.27.1.230.nip.io
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: istio-ingressgateway
+              port:
+                number: 80
