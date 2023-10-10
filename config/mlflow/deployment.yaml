@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-deployment
+  namespace: mlflow
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      serviceAccountName: mlflow-sa
+      containers:
+        - name: mlflow
+      
+          image: lorenzocolombi99/mlflow-image:1
+          imagePullPolicy: Always
+          command: ["/bin/bash"]
+#attenzione: mlflow usa slqlite interno al pod senza persistenza
+#sarebbe bene collegare un database
+          args:
+            [
+              "-c",
+              "mlflow server \
+              --backend-store-uri sqlite:///mlflow.db \
+              --default-artifact-root ./artifacts \
+              --host 0.0.0.0",
+            ]
+          ports:
+            - containerPort: 5000
