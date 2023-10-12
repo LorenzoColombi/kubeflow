@@ -18,19 +18,34 @@ spec:
       serviceAccountName: mlflow-sa
       containers:
         - name: mlflow
-      
-          image: lorenzocolombi99/mlflow-image:1
+          #TODO: Change the image to your own image
+          image: lorenzocolombi99/mlflow-image:2
           imagePullPolicy: Always
           command: ["/bin/bash"]
-#attenzione: mlflow usa slqlite interno al pod senza persistenza
-#sarebbe bene collegare un database
           args:
             [
               "-c",
               "mlflow server \
               --backend-store-uri sqlite:///mlflow.db \
-              --default-artifact-root ./artifacts \
-              --host 0.0.0.0",
+              --artifacts-destination s3://mlflow \
+              --host 0.0.0.0
+              --serve-artifacts"
             ]
           ports:
             - containerPort: 5000
+          #setting env to accessing s3
+          env:
+            - name: AWS_BUCKET
+              value: mlflow
+            - name: AWS_ACCESS_KEY_ID
+              value: minio
+            - name: AWS_SECRET_ACCESS_KEY
+              value: minio123
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://10.152.183.148:9000
+            - name: MLFLOW_S3_IGNORE_TLS
+              value: "true"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
